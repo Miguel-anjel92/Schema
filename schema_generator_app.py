@@ -1,45 +1,24 @@
 import streamlit as st
 import json
 import streamlit.components.v1 as components
+from datetime import time
 
 st.set_page_config(page_title="Local Business Schema Generator", layout="centered")
 st.title("Local Business Schema Generator")
 
 # Collect basic business information
-name = st.text_input(
-    "Business Name", value="", placeholder="Acme Corp"
-)
-url = st.text_input(
-    "Business URL (e.g. https://example.com)", value="", placeholder="https://example.com"
-)
-logo = st.text_input(
-    "Logo URL (absolute URL)", value="", placeholder="https://example.com/logo.png"
-)
-description = st.text_area(
-    "Business Description",
-    value="",
-    placeholder="Acme Corp provides top-notch solutions to meet all your needs."
-)
+name = st.text_input("Business Name", placeholder="Acme Corp")
+url = st.text_input("Business URL (e.g. https://example.com)", placeholder="https://example.com")
+logo = st.text_input("Logo URL (absolute URL)", placeholder="https://example.com/logo.png")
+description = st.text_area("Business Description", placeholder="Acme Corp provides top-notch solutions.")
 
 # Contact and address
-telephone = st.text_input(
-    "Phone Number", value="", placeholder="+1-555-123-4567"
-)
-street = st.text_input(
-    "Street Address", value="", placeholder="123 Main St"
-)
-city = st.text_input(
-    "City", value="", placeholder="Anytown"
-)
-region = st.text_input(
-    "Region/State", value="", placeholder="CA"
-)
-postal = st.text_input(
-    "Postal Code", value="", placeholder="12345"
-)
-country = st.text_input(
-    "Country Code (e.g. US)", value="", placeholder="US"
-)
+telephone = st.text_input("Phone Number", placeholder="+1-555-123-4567")
+street = st.text_input("Street Address", placeholder="123 Main St")
+city = st.text_input("City", placeholder="Anytown")
+region = st.text_input("Region/State", placeholder="CA")
+postal = st.text_input("Postal Code", placeholder="12345")
+country = st.text_input("Country Code (e.g. US)", placeholder="US")
 
 # Social profiles
 socials = st.text_area(
@@ -53,13 +32,32 @@ areas_text = st.text_area(
     placeholder="Anytown, CA\nOtherville, TX"
 )
 
+# Opening hours via checkboxes + time inputs
+st.markdown("### Opening Hours (check days and set times)")
+week_days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+hours = []
+for day in week_days:
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        selected = st.checkbox(day, key=f"chk_{day}")
+    with col2:
+        if selected:
+            open_time = st.time_input(f"{day} opens at", value=time(9, 0), key=f"open_{day}")
+            close_time = st.time_input(f"{day} closes at", value=time(17, 0), key=f"close_{day}")
+            hours.append({
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": day,
+                "opens": open_time.strftime("%H:%M"),
+                "closes": close_time.strftime("%H:%M"),
+            })
+
 # Hidden Offer Catalog Name
 catalog_name = "Our Services"
 
 # Services input (name, description)
 services_text = st.text_area(
     "Services (one per line, format: name, description)",
-    placeholder="Service One, Brief description of service one.\nService Two, Brief description of service two."
+    placeholder="Service One, Brief description.\nService Two, Another description."
 )
 
 if st.button("Generate JSON-LD Schema"):
@@ -91,6 +89,10 @@ if st.button("Generate JSON-LD Schema"):
     if areas:
         schema["areaServed"] = areas
 
+    # Include openingHoursSpecification
+    if hours:
+        schema["openingHoursSpecification"] = hours
+
     # Include services catalog if provided
     offers = []
     for line in services_text.splitlines():
@@ -111,7 +113,7 @@ if st.button("Generate JSON-LD Schema"):
             "itemListElement": offers,
         }
 
-    # Render JSON-LD and copy button with a robust script
+    # Render JSON-LD and copy button
     json_ld = json.dumps(schema, indent=2)
     html = f"""
     <button id=\"copy-btn\">Copy JSON-LD</button>
@@ -127,7 +129,7 @@ if st.button("Generate JSON-LD Schema"):
       }});
     </script>
     """
-    components.html(html, height=450)
+    components.html(html, height=500)
 
     st.markdown("""
 **How to use:**  
