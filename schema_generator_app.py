@@ -1,5 +1,6 @@
 import streamlit as st
 import json
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Local Business Schema Generator", layout="centered")
 st.title("Local Business Schema Generator")
@@ -110,12 +111,16 @@ if st.button("Generate JSON-LD Schema"):
             "itemListElement": offers,
         }
 
-    st.header("Generated JSON-LD")
-    st.json(schema)
+    # Render JSON-LD and copy button
+    json_ld = json.dumps(schema, indent=2)
+    components.html(f"""
+    <button onclick="navigator.clipboard.writeText(`{json_ld}`)">Copy JSON-LD</button>
+    <pre style="background:#f0f0f0;padding:10px;border-radius:5px;overflow:auto;">{json_ld}</pre>
+    """, height=400)
 
     st.markdown("""
 **How to use:**
-1. Copy the JSON above.
+1. Click the 'Copy JSON-LD' button above to copy the full JSON-LD.
 2. Paste it into a `<script type=\"application/ld+json\">` tag on your page.
 3. Verify with Google's Rich Results Test.
 """)
