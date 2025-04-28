@@ -111,16 +111,27 @@ if st.button("Generate JSON-LD Schema"):
             "itemListElement": offers,
         }
 
-    # Render JSON-LD and copy button
+    # Render JSON-LD and copy button with a robust script
     json_ld = json.dumps(schema, indent=2)
-    components.html(f"""
-    <button onclick="navigator.clipboard.writeText(`{json_ld}`)">Copy JSON-LD</button>
-    <pre style="background:#f0f0f0;padding:10px;border-radius:5px;overflow:auto;">{json_ld}</pre>
-    """, height=400)
+    html = f"""
+    <button id=\"copy-btn\">Copy JSON-LD</button>
+    <pre id=\"json-output\" style=\"background:#f0f0f0;padding:10px;border-radius:5px;overflow:auto;white-space:pre-wrap;word-wrap:break-word;\">{json_ld}</pre>
+    <script>
+      const btn = document.getElementById('copy-btn');
+      btn.addEventListener('click', () => {{
+        const text = document.getElementById('json-output').innerText;
+        navigator.clipboard.writeText(text).then(() => {{
+          btn.innerText = 'Copied!';
+          setTimeout(() => btn.innerText = 'Copy JSON-LD', 2000);
+        }});
+      }});
+    </script>
+    """
+    components.html(html, height=450)
 
     st.markdown("""
-**How to use:**
-1. Click the 'Copy JSON-LD' button above to copy the full JSON-LD.
-2. Paste it into a `<script type=\"application/ld+json\">` tag on your page.
+**How to use:**  
+1. Click the 'Copy JSON-LD' button above to copy the full JSON-LD.  
+2. Paste it into a `<script type=\"application/ld+json\">` tag on your page.  
 3. Verify with Google's Rich Results Test.
 """)
