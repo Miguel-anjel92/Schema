@@ -1,5 +1,6 @@
 import streamlit as st
 import json
+import base64
 import streamlit.components.v1 as components
 from datetime import time
 
@@ -7,7 +8,6 @@ st.set_page_config(page_title="Local Business Schema Generator", layout="centere
 st.title("Local Business Schema Generator")
 
 def build_jsonld():
-    # grab everything from session_state
     schema = {
         "@context": "https://schema.org",
         "@type": "LocalBusiness",
@@ -26,20 +26,16 @@ def build_jsonld():
         },
     }
 
-    # sameAs
     same_as = [u.strip() for u in st.session_state.socials.splitlines() if u.strip()]
     if same_as:
         schema["sameAs"] = same_as
 
-    # areaServed
     areas = [a.strip() for a in st.session_state.areas.splitlines() if a.strip()]
     if areas:
         schema["areaServed"] = areas
 
-    # openingHoursSpecification
     hours = []
-    week_days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
-    for day in week_days:
+    for day in ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]:
         if st.session_state.get(f"chk_{day}", False):
             opens = st.session_state[f"open_{day}"].strftime("%H:%M")
             closes = st.session_state[f"close_{day}"].strftime("%H:%M")
@@ -52,17 +48,16 @@ def build_jsonld():
     if hours:
         schema["openingHoursSpecification"] = hours
 
-    # services → OfferCatalog
     offers = []
     for line in st.session_state.services.splitlines():
         if "," in line:
-            name, desc = [p.strip() for p in line.split(",", 1)]
+            svc_name, svc_desc = [p.strip() for p in line.split(",",1)]
             offers.append({
                 "@type": "Offer",
                 "itemOffered": {
                     "@type": "Service",
-                    "name": name,
-                    "description": desc,
+                    "name": svc_name,
+                    "description": svc_desc,
                 }
             })
     if offers:
@@ -72,11 +67,13 @@ def build_jsonld():
             "itemListElement": offers
         }
 
-    # dump + wrap in <script>
     raw_json = json.dumps(schema, indent=2)
-    return f'<script type="application/ld+json">\n{raw_json}\n</script>'
+    # wrap with actual newlines
+    return f"""<script type="application/ld+json">
+{raw_json}
+</script>"""
 
-# --- Inputs ---
+# --- UI inputs (same as before) ---
 st.text_input("Business Name", key="name", placeholder="Acme Corp")
 st.text_input("Business URL", key="url", placeholder="https://example.com")
 st.text_input("Logo URL", key="logo", placeholder="https://example.com/logo.png")
@@ -89,12 +86,9 @@ st.text_input("Region/State", key="region", placeholder="CA")
 st.text_input("Postal Code", key="postal", placeholder="12345")
 st.text_input("Country Code", key="country", placeholder="US")
 
-st.text_area("Social Profiles (one URL per line)", key="socials",
-             placeholder="https://facebook.com/yourbusiness\nhttps://twitter.com/yourbusiness")
-st.text_area("Areas Served (one per line)", key="areas",
-             placeholder="Anytown, CA\nOtherville, TX")
-st.text_area("Services (format: name, description per line)", key="services",
-             placeholder="Service One, Brief description.\nService Two, Another description.")
+st.text_area("Social Profiles", key="socials")
+st.text_area("Areas Served", key="areas")
+st.text_area("Services (name, description)", key="services")
 
 st.markdown("### Opening Hours")
 for day in ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]:
@@ -107,43 +101,33 @@ for day in ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunda
         with c3:
             st.time_input(f"{day} closes at", value=time(17,0), key=f"close_{day}")
 
-# --- Generate & display ---
+# --- Generate & show ---
 if st.button("Generate JSON-LD Schema"):
     script_block = build_jsonld()
+    b64 = base64.b64encode(script_block.encode("utf-8")).decode("utf-8")
 
-    # Build HTML with escape/display logic + copy raw
-    html = f"""
-    <button id="copy-btn">Copy JSON-LD</button>
-    <pre id="json-output" style="
-        background:#f0f0f0;
-        padding:10px;
-        border-radius:5px;
-        overflow:auto;
-        white-space:pre-wrap;
-        word-wrap:break-word;
-    "></pre>
-
-    <script>
-      // raw <script> block
-      const raw = `{script_block}`;
-      // escaped for visible display
-      const escaped = raw.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      document.getElementById("json-output").innerHTML = escaped;
-
-      document.getElementById("copy-btn").addEventListener("click", () => {{
-        navigator.clipboard.writeText(raw).then(() => {{
-          const btn = document.getElementById("copy-btn");
-          btn.innerText = "Copied!";
-          setTimeout(() => btn.innerText = "Copy JSON-LD", 2000);
-        }});
-      }});
-    </script>
-    """
-
+    html = f'''
+<button id="copy-btn">Copy JSON-LD</button>
+<pre id="json-output" style="background:#f0f0f0;
+    padding:10px;border-radius:5px;overflow:auto;
+    white-space:pre-wrap;word-wrap:break-word;"></pre>
+<script>
+  const raw = atob("{b64}");
+  document.getElementById("json-output").textContent = raw;
+  document.getElementById("copy-btn").addEventListener("click", () => {{
+    navigator.clipboard.writeText(raw).then(() => {{
+      const btn = document.getElementById("copy-btn");
+      btn.textContent = "Copied!";
+      setTimeout(() => btn.textContent = "Copy JSON-LD", 2000);
+    }});
+  }});
+</script>
+'''
     components.html(html, height=500)
+
     st.markdown("""
 **How to use:**  
-1. Click **Copy JSON-LD** — it copies the full `<script type="application/ld+json">…</script>` block.  
+1. Click **Copy JSON-LD**.  
 2. Paste directly into your page’s HTML.  
-3. Verify with Google’s Rich Results Test.
+3. Validate with Google’s Rich Results Test.
 """)
