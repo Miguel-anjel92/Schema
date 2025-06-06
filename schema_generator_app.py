@@ -10,7 +10,7 @@ st.caption("Local Business Schema Generator Testing Beta | Built by Miguel Graci
 
 # --- Helper callbacks for dynamic services ---
 def add_service():
-    st.session_state.services.append({"name": "", "desc": ""})
+    st.session_state.services.append({"name": "", "desc": "", "sameAsUrl": ""}) # Added sameAsUrl
 
 def delete_service(idx):
     st.session_state.services.pop(idx)
@@ -81,6 +81,7 @@ def build_jsonld():
     for svc in st.session_state.services:
         name = svc.get("name", "").strip()
         desc = svc.get("desc", "").strip()
+        same_as_url = svc.get("sameAsUrl", "").strip() # Get sameAsUrl
         if name: # Only add service if name is present
             service_item = {
                 "@type": "Service",
@@ -88,6 +89,8 @@ def build_jsonld():
             }
             if desc: # Add description only if provided
                 service_item["description"] = desc
+            if same_as_url: # Add sameAs if provided
+                service_item["sameAs"] = same_as_url
 
             offers.append({
                 "@type": "Offer",
@@ -105,7 +108,7 @@ def build_jsonld():
 
 # --- Initialize UI State ---
 if "services" not in st.session_state:
-    st.session_state.services = [{"name": "", "desc": ""}]
+    st.session_state.services = [{"name": "", "desc": "", "sameAsUrl": ""}] # Initialize with sameAsUrl
 if "socials" not in st.session_state:
     st.session_state.socials = ""
 if "areas" not in st.session_state:
@@ -152,9 +155,13 @@ for i, svc in enumerate(st.session_state.services):
             f"Service Name", key=f"svc_name_{i}", value=svc["name"], label_visibility="collapsed", placeholder="Service Name"
         )
         st.session_state.services[i]["name"] = name
+        same_as_url = st.text_input( # New input for sameAsUrl
+            f"Service URL (sameAs)", key=f"svc_sameAsUrl_{i}", value=svc.get("sameAsUrl", ""), placeholder="URL for this specific service"
+        )
+        st.session_state.services[i]["sameAsUrl"] = same_as_url
     with c2:
         desc = st.text_area(
-            f"Service Description", key=f"svc_desc_{i}", value=svc["desc"], height=75, label_visibility="collapsed", placeholder="Optional: Brief description of the service"
+            f"Service Description", key=f"svc_desc_{i}", value=svc["desc"], height=75, label_visibility="collapsed", placeholder="Brief description of the service"
         )
         st.session_state.services[i]["desc"] = desc
     with c3:
