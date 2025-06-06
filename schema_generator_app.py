@@ -156,7 +156,7 @@ for i, svc in enumerate(st.session_state.services):
         )
         st.session_state.services[i]["name"] = name
         same_as_url = st.text_input( # New input for sameAsUrl
-            f"Service URL (sameAs)", key=f"svc_sameAsUrl_{i}", value=svc.get("sameAsUrl", ""), placeholder="URL for this specific service"
+            f"Service URL", key=f"svc_sameAsUrl_{i}", value=svc.get("sameAsUrl", ""), placeholder="URL for this specific service"
         )
         st.session_state.services[i]["sameAsUrl"] = same_as_url
     with c2:
